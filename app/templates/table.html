@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width" />
+    <title>BootStrap Table使用</title>
+    <!--@*1、Jquery组件引用*@-->
+    <script src="../static/jquery-1.9.1.js"></script>
+
+    <!--@*2、bootstrap组件引用*@-->
+    <script src="../static/bootstrap-3.3.7/dist/js/bootstrap.js"></script>
+    <link href="../static/bootstrap-3.3.7/dist/css/bootstrap.css" rel="stylesheet" />
+
+    <!--@*3、bootstrap table组件以及中文包的引用*@-->
+    <script src="../static/bootstrap-table/dist/bootstrap-table.js"></script>
+    <link href="../static/bootstrap-table/dist/bootstrap-table.css" rel="stylesheet" />
+    <script src="../static/bootstrap-table/dist/locale/bootstrap-table-zh-CN.js"></script>
+
+
+    <script src="../static/x-editable/dist/bootstrap3-editable/js/bootstrap-editable.js"></script>
+    <link href="../static/x-editable/dist/bootstrap3-editable/css/bootstrap-editable.css" rel="stylesheet" />
+
+    <script src="../static/bootstrap-table/dist/extensions/editable/bootstrap-table-editable.js"></script>
+    
+</head>
+<body>
+
+
+<div style="width: 80%;margin: 0 auto">
+    <table id="table" ></table>
+</div> 
+
+<a href="#" id="username" data-type="text" data-title="用户名">用户名</a>
+
+<script>
+    $(function(){
+        $('#username').editable({
+            mode: "inline",
+            validate: function (value){
+                if (!$.trim(value)){
+                    return "不能为空";
+                }
+            }
+        });
+    });
+
+    $('#table').bootstrapTable({
+        search: true,
+        columns: [{
+            checkbox: true
+        },{
+            field: 'id',
+            title: 'Item ID',
+            editable: {
+                mode: "inline",
+                type: 'text',
+                title: '用户名',
+                validate: function (v) {
+                    if (!v) return '用户名不能为空';  
+                }
+            }
+        }, {
+            field: 'name',
+            title: 'Item Name'
+        }, {
+            field: 'price',
+            title: 'Item Price'
+        }],
+        data: [{
+            id: 1,
+            name: 'Item 1',
+            price: '$1'
+        }, {
+            id: 2,
+            name: 'Item 2',
+            price: '$2'
+        }]
+    });
+</script>
+</body>
+</html>
