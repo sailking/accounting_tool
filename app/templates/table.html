@@ -25,46 +25,133 @@
 </head>
 <body>
 
+<div id="whole">
+        <div style="width: 80%;margin: 0 auto">
+            <table id="table"></table>
+        </div> 
+            
+        <div id="toolbar">
+            <button id="add_button" class="btn btn-danger">
+                <i class="glyphicon glyphicon-plus"></i> 新增
+            </button>
+            <button id="remove_button" class="btn btn-info" disabled>
+                <i class="glyphicon glyphicon-remove"></i> 删除
+            </button>
+        </div>
+</div>
 
-<div style="width: 80%;margin: 0 auto">
-    <table id="table" ></table>
-</div> 
-
-<a href="#" id="username" data-type="text" data-title="用户名">用户名</a>
 
 <script>
-    $(function(){
-        $('#username').editable({
-            mode: "inline",
-            validate: function (value){
-                if (!$.trim(value)){
-                    return "不能为空";
-                }
-            }
-        });
-    });
-
-    $('#table').bootstrapTable({
+    var $whole = $('#whole');
+    $whole.offset({top:100,left:0});
+    var $table = $('#table');
+    $table.bootstrapTable({
+        toolbar: "#toolbar",
+        idField: "Id",
+        pagination: true,
+        showRefresh: true,
         search: true,
+        clickToSelect: true,
         columns: [{
             checkbox: true
         },{
             field: 'id',
-            title: 'Item ID',
+            title: 'ID',
             editable: {
                 mode: "inline",
                 type: 'text',
-                title: '用户名',
                 validate: function (v) {
-                    if (!v) return '用户名不能为空';  
+                    if (!v) return '不能为空';  
                 }
+            },
+            
+        }, {
+            field: 'date',
+            title: '日期',
+            editable: {
+                placement: 'right',
+                type: 'date',
             }
         }, {
             field: 'name',
-            title: 'Item Name'
+            title: '名称',
+            editable: {
+                mode: "inline",
+                type: 'text',
+                validate: function (v) {
+                    if (!v) return '不能为空';  
+                }
+            }
         }, {
-            field: 'price',
-            title: 'Item Price'
+            field: 'count',
+            title: '数量',
+            editable: {
+                mode: "inline",
+                type: 'text',
+                validate: function (v) {
+                    if (!v) return '不能为空';  
+                }
+            }
+        }, {
+            field: 'normal_price',
+            title: '原价/€',
+            editable: {
+                mode: "inline",
+                type: 'text',
+                validate: function (v) {
+                    if (!v) return '不能为空';  
+                }
+            }
+        }, {
+            field: 'discount',
+            title: '折扣',
+            editable: {
+                mode: "inline",
+                type: 'text',
+                validate: function (v) {
+                    if (!v) return '不能为空';  
+                }
+            }
+        }, {
+            field: 'actual_price',
+            title: '折后价/€',
+            editable: {
+                mode: "inline",
+                type: 'text',
+                validate: function (v) {
+                    if (!v) return '不能为空';  
+                }
+            }
+        }, {
+            field: 'sell_price',
+            title: '售价/¥',
+            editable: {
+                mode: "inline",
+                type: 'text',
+                validate: function (v) {
+                    if (!v) return '不能为空';  
+                }
+            }
+        }, {
+            field: 'postage',
+            title: '邮费/¥',
+            editable: {
+                mode: "inline",
+                type: 'text',
+                validate: function (v) {
+                    if (!v) return '不能为空';  
+                }
+            }
+        }, {
+            field: 'box',
+            title: '纸箱/气泡柱',
+            editable: {
+                mode: "inline",
+                type: 'text',
+                validate: function (v) {
+                    if (!v) return '不能为空';  
+                }
+            }
         }],
         data: [{
             id: 1,
@@ -76,6 +163,42 @@
             price: '$2'
         }]
     });
+
+    $table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', () => {
+            $remove_button.prop('disabled', !$table.bootstrapTable('getSelections').length);
+            selections = getIdSelections();
+    });
+    var $add_button = $('#add_button')
+        $remove_button = $('#remove_button')
+    $(() => {
+        $remove_button.click(() => {
+            var ids = getIdSelections();
+            $table.bootstrapTable('remove', {
+                field: 'id',
+                values: ids
+            });
+        });
+        
+        var list = [{
+            id: 0,
+            name: '0',
+            price: '$' + 0
+        }]
+        console.log(list);
+        $add_button.click(() => {
+            $table.bootstrapTable('append', list);
+            $table.bootstrapTable('scrollTo', 'bottom');
+        });
+    });
+
+    
+    
+    function getIdSelections() {
+        return $.map($table.bootstrapTable('getSelections'), function (row) {
+            return row.id
+        });
+    }
+    
 </script>
 </body>
 </html>
