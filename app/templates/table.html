@@ -27,7 +27,8 @@
 <body>
 
 <div class="container">
-	<h1></h1>
+    <h1></h1>
+    
 	<div id="toolbar">
 		<button id="remove_button" class="btn btn-danger" disabled>
 			<i class="glyphicon glyphicon-remove"></i> 删除
@@ -38,21 +39,30 @@
         <button id="save_button" class="btn btn-success">
 			<i class="glyphicon glyphicon-save"></i> 保存
         </button>
-	</div>
-
-	<table id="table"></table>
+        <button id="mode_button" class="btn btn-default">
+            <i class="glyphicon glyphicon-retweet"></i> 本人模式
+        </button>
+    </div> 
+    <table id="table"  
+            data-toolbar="#toolbar"
+            data-search="true"
+            data-show-columns="true"
+            data-show-export="true">  
+    </table>
 </div>
+
 <script>
 /*     $("#save_button").click(function(){
  */
 
 	var $table = $('#table');
     $table.bootstrapTable({
-		toolbar: "#toolbar",
+        toolbar: "#toolbar",
         search: true,
-		showColumns: true,
+        showColumns: true,
+        font: 12,
         columns: [{
-            "checkbox": true
+            "checkbox": true,
         },{
             "field": 'id',
             "title": 'id',
@@ -121,6 +131,7 @@
         },{
             "field": 'single_sell_price',
             "title": '售价（单价）/人民币',
+            "visible": false,
             "editable": {
                 "mode": "inline",
                 "type": 'text',
@@ -131,6 +142,7 @@
         },{
             "field": 'total_sell_price',
             "title": '售价（总价）/人民币',
+            "visible": false,
             "editable": {
                 "mode": "inline",
                 "type": 'text',
@@ -141,6 +153,7 @@
         },{
             "field": 'single_profit',
             "title": '利润（单个）/人民币',
+            "visible": false,
             "editable": {
                 "mode": "inline",
                 "type": 'text',
@@ -151,6 +164,7 @@
         },{
             "field": 'total_profit',
             "title": '利润（总）/人民币',
+            "visible": false,
             "editable": {
                 "mode": "inline",
                 "type": 'text',
@@ -159,11 +173,13 @@
                 }
             }
         },{
-            "field": 'date',
-            "title": '日期',
+            "field": "date",
+            "title": "日期",
+            "type": "text",
+            "width": "1000px",
             "editable": {
-                "mode": "inline",
-                "type": 'text',
+                "type": "date",
+                "placement": "bottom",
                 "validate": function (v) {
                     if (!v) return '不能为空';  
                 }
@@ -196,7 +212,8 @@
         });
     }
 
-	
+    var current_date = new Date();
+    console.log(current_date.toLocaleDateString());
 	var default_data = [{
 		"id": 0,
 		"product_name": "爱1",
@@ -208,46 +225,51 @@
 		"single_sell_price": "145",
 		"total_sell_price": "145",
 		"single_profit": "73",
-		"total_profit": "73"
-	}
-	]
-	
+        "total_profit": "73",
+        "date": current_date.toLocaleDateString()
+	}];
+	console.log(default_data[0]["date"]);
 	
 	var $add_button = $("#add_button");
 	$add_button.click(function () {
-		old_id = $table.find("tr").last().id
-		console.log($table.find("tr").last());
-		if (isNaN(old_id)){
+        td = $table.find("tr").last().find("td").eq(1);
+        console.log("td: " + td.text());
+        if (isNaN(td)){
 			old_id = 0;
-		}
-		console.log(default_data[0]["id"]);
-		default_data[0]["id"] = parseInt(old_id) + 1;
+        } else {
+            old_id = td.text();
+        }
+        console.log("old_id: " + old_id);
+		console.log("before: " + default_data[0]["id"]);
+        default_data[0]["id"] = parseInt(old_id) + 1;
+        console.log("after: " + default_data[0]["id"]);
 		$table.bootstrapTable('append', default_data);
 		$table.bootstrapTable('scrollTo', 'bottom');
 	});
 
-	//********************************************to do 
-	var table_headers = $('#table.table-hover th div.th-inner');
-	table_headers.click(function() {
-		var name, currency_unit;
-		[name, currency_unit] = $(this).text().split("/");
-		if (currency_unit == "欧元"){
-			var new_text = name +"/"+"人民币";
-		} else if (currency_unit == "人民币"){
-			var new_text = name +"/"+"欧元";
+    var $container = $("div.container")
+    console.log($container.prop("tagName"));
+
+  
+    $container.on("click", "table th", function() {
+    	var name, currency_unit;
+    	[name, currency_unit] = $(this).text().split("/");
+    	if (currency_unit == "欧元"){
+    		var new_text = name +"/"+"人民币";
+    	} else if (currency_unit == "人民币"){
+    		var new_text = name +"/"+"欧元";
 		} else {
 			return 
 		}
-		$(this).text(new_text);
+		$(this).find("div.th-inner").text(new_text);
 		
-		var index = $(this).attr(tagName);
-		console.log(index)
+		var index = $(this).index();
 		$('#table tr').find('td').each(function() {
 			if ($(this).index() == index) {
 				if (currency_unit == "欧元"){
-					$(this).text(parseFloat($(this).text())*8);
+					$(this).find("a").text(parseFloat($(this).text())*8);
 				} else {
-					$(this).text(parseFloat($(this).text())/8);
+					$(this).find("a").text(parseFloat($(this).text())/8);
 				}
 			}
 		});
