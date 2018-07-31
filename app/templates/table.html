@@ -44,36 +44,37 @@
         </button>
     </div> 
     <table id="table"  
+            data-toggle="table"
             data-toolbar="#toolbar"
             data-search="true"
             data-show-columns="true"
-            data-show-export="true">  
+            data-show-export="true"
+            data-unique-id="id"
+            >  
     </table>
+    <button id="username">请点击我</button>
+    <a id="aaaa" href="javascript:void(0)">也点击我</a>
 </div>
 
 <script>
-/*     $("#save_button").click(function(){
- */
-
+	'use strict';
 	var $table = $('#table');
+	
     $table.bootstrapTable({
-        toolbar: "#toolbar",
-        search: true,
-        showColumns: true,
-        font: 12,
         columns: [{
             "checkbox": true,
         },{
             "field": 'id',
             "title": 'id',
+            "sortable": true
         },{
             "field": 'product_name',
             "title": '产品名称',
             "editable": {
                 "mode": "popup",
-                "type": 'text',
-				"title": 'select',
-				"source": [{ value: 1, text: "爱1" }, { value: 2, text: "爱2" }, {value:3,text:"爱3"}],
+                "type": 'select',
+				"title": '选择产品',
+				"source": [{ value: "爱1", text: "爱1" }, { value: "爱2", text: "爱2" }, {value:"爱3",text:"爱3"}],
                 "validate": function (v) {
                     if (!v) return '不能为空';  
                 }
@@ -176,7 +177,7 @@
             "field": "date",
             "title": "日期",
             "type": "text",
-            "width": "1000px",
+            "sortable": true,
             "editable": {
                 "type": "date",
                 "placement": "bottom",
@@ -184,15 +185,16 @@
                     if (!v) return '不能为空';  
                 }
             }
-        }]
+        }],
+        onEditableSave: function (field, row, oldValue, $el){
+            alert(oldValue);
+        }
     });
 
-    $remove = $("#remove_button")
+    var $remove = $("#remove_button");
     $table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', function () {
         $remove.prop('disabled', !$table.bootstrapTable('getSelections').length);
         // save your data, here just save the current page
-        selections = getIdSelections();
-        // push or splice the selections if you want to save all data selections
     });
     
     $remove.click(function(){
@@ -212,45 +214,72 @@
         });
     }
 
-    var current_date = new Date();
-    console.log(current_date.toLocaleDateString());
-	var default_data = [{
-		"id": 0,
-		"product_name": "爱1",
-		"product_count": "1",
-		"single_original_price": "10",
-		"discount": "0.9",
-		"single_buy_price": "9",
-		"total_buy_price": "9",
-		"single_sell_price": "145",
-		"total_sell_price": "145",
-		"single_profit": "73",
-        "total_profit": "73",
-        "date": current_date.toLocaleDateString()
-	}];
-	console.log(default_data[0]["date"]);
+    function getToday(){
+    	var current_date = new Date();
+        var year = current_date.getFullYear();
+    	var month = current_date.getMonth() + 1;
+    	if (month < 10){
+    		month = "0"+month;
+    	}
+    	var day = current_date.getDate();
+    	var today =  year + "-" + month + "-" + day;
+    	return today;
+    }
+    
+    var today = getToday();
+	console.log(today);
+	function get_default_data(old_id){
+		var default_data = [{
+			"id": 0,
+			"product_name": "爱1",
+			"product_count": "1",
+			"single_original_price": "10",
+			"discount": "0.9",
+			"single_buy_price": "9",
+			"total_buy_price": "9",
+			"single_sell_price": "145",
+			"total_sell_price": "145",
+			"single_profit": "73",
+	        "total_profit": "73",
+	        "date": today
+		}];
+		var new_id = old_id + 1;
+		console.log("old_id: " + old_id);
+		console.log("new_id: " + new_id);
+		default_data[0]["id"] = new_id;
+		return default_data;
+	}
 	
 	var $add_button = $("#add_button");
 	$add_button.click(function () {
-        td = $table.find("tr").last().find("td").eq(1);
-        console.log("td: " + td.text());
-        if (isNaN(td)){
-			old_id = 0;
+        var td = $table.find("tr").last().find("td").eq(1);
+        var old_id;
+        if (td.length == 0){
+            old_id = 0;
         } else {
             old_id = td.text();
         }
-        console.log("old_id: " + old_id);
-		console.log("before: " + default_data[0]["id"]);
-        default_data[0]["id"] = parseInt(old_id) + 1;
-        console.log("after: " + default_data[0]["id"]);
-		$table.bootstrapTable('append', default_data);
-		$table.bootstrapTable('scrollTo', 'bottom');
+        $table.bootstrapTable('append', get_default_data(parseInt(old_id)));
+        $table.bootstrapTable('scrollTo', 'bottom');
+        console.log("**********************")
 	});
 
-    var $container = $("div.container")
-    console.log($container.prop("tagName"));
+    var $save = $("#save_button");
+    $save.click(function(){
+        var data = JSON.stringify($table.bootstrapTable('getData'));
+        $.ajax({
+            url:"/datafromtable",
+            data: data,
+            type:"POST",
+            dataType: "json",
+            success:function(){
+                alert("数据保存成功！" + data);
+            }
+        })
+    
+    });
 
-  
+    var $container = $("div.container")
     $container.on("click", "table th", function() {
     	var name, currency_unit;
     	[name, currency_unit] = $(this).text().split("/");
@@ -274,7 +303,7 @@
 			}
 		});
 	});
-	
+ 
 </script>
 </body>
 </html>
