@@ -1,7 +1,22 @@
 {% extends "bootstrap/base.html" %}
 {% block head %}
 {{ super() }}
+
+<!-- 1. jquery引用 -->
 <script src="../static/jquery-1.9.1.js"></script>
+
+<!-- 3. bootstrap table组件以及中文包的引用 -->
+<script src="../static/bootstrap-table/dist/bootstrap-table.js"></script>
+<link href="../static/bootstrap-table/dist/bootstrap-table.css" rel="stylesheet" />
+<script src="../static/bootstrap-table/dist/locale/bootstrap-table-zh-CN.js"></script>
+
+<!-- 4.bootstrap table editable组件引用 -->
+<script src="../static/x-editable/dist/bootstrap3-editable/js/bootstrap-editable.js"></script>
+<link href="../static/x-editable/dist/bootstrap3-editable/css/bootstrap-editable.css" rel="stylesheet" />
+
+<script src="../static/bootstrap-table/dist/extensions/editable/bootstrap-table-editable.js"></script>
+<script src="../static/bootstrap-table/dist/locale/bootstrap-table-zh-CN.js"></script>
+
 <link rel="shortcut icon" href="{{ url_for('static', filename = 'icon/购物.png') }}" type="imge/x-icon">
 <link rel="icon" href="{{ url_for('static', filename = 'icon/购物.png') }}" type="imge/x-icon">
 {% endblock %}
