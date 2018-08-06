@@ -20,8 +20,9 @@ def connect_database():
         cf.read("config.cfg")
         db = mongoengine.connect(db = cf.get("Database", "db"),
                                  host = cf.get("Database", "host"))
+        
 class Purchase(DynamicDocument):
-    product_id = IntField(unique=True)
+    product_id = IntField()
     product_name = StringField()
     product_count = IntField()
     single_original_price = FloatField()
@@ -41,26 +42,26 @@ class Purchase(DynamicDocument):
     def seed(cls, data):
         print("call save")
         try:
-            for product in data:
-                pprint(product)
-                item = Purchase.objects(product_id=product["product_id"]).first()
+            for purchase in data:
+                pprint(purchase)
+                item = Purchase.objects(product_id=purchase["product_id"], batch_info=purchase["batch_info"]).first()
                 if item is None:
                     print("create new")
                     item = Purchase()
 
-                item.product_id = product["product_id"]
-                item.product_name = product["product_name"]
-                item.product_count = int(product["product_count"])
-                item.single_original_price = float(product["single_original_price"])
-                item.discount = float(product["discount"])
-                item.single_buy_price = float(product["single_buy_price"])
-                item.total_buy_price = float(product["total_buy_price"])
-                item.single_sell_price = float(product["single_sell_price"])
-                item.total_sell_price = float(product["total_sell_price"])
-                item.single_profit = float(product["single_profit"])
-                item.total_profit = float(product["total_profit"])
-                item.date = product["date"]
-                item.batch_info = product["batch_info"]
+                item.product_id = purchase["product_id"]
+                item.product_name = purchase["product_name"]
+                item.product_count = int(purchase["product_count"])
+                item.single_original_price = float(purchase["single_original_price"])
+                item.discount = float(purchase["discount"])
+                item.single_buy_price = float(purchase["single_buy_price"])
+                item.total_buy_price = float(purchase["total_buy_price"])
+                item.single_sell_price = float(purchase["single_sell_price"])
+                item.total_sell_price = float(purchase["total_sell_price"])
+                item.single_profit = float(purchase["single_profit"])
+                item.total_profit = float(purchase["total_profit"])
+                item.date = purchase["date"]
+                item.batch_info = purchase["batch_info"]
                 item.postage = 0.0
                    
                 item.save()
@@ -70,11 +71,20 @@ class Purchase(DynamicDocument):
             print(e)
     
     @classmethod
-    def get_batch(cls, batch_name):
-        print("call get_batch")
+    def get_batch_list(cls):
+        batch_list = Purchase.objects.distinct(field="batch_info")
+        print(batch_list)
+        return json.dumps(batch_list)
+        
+    @classmethod
+    def get_purchase(cls, batch_name):
         products = Purchase.objects(batch_info=batch_name)
         json_data = products.to_json()
         return json_data
+    
+    @classmethod
+    def purchase_delete(cls):
+        pass
     
 class Products(DynamicDocument):
     product_id = IntField()
@@ -82,18 +92,59 @@ class Products(DynamicDocument):
     single_original_price = FloatField()
     discount = FloatField()
     product_count = IntField()
-    total_buy_price = FloatField()
+    exchange_rate = FloatField()
     product_type = StringField()
     
     @classmethod
     def get_product_type_list(cls):
         product_types = Products.objects.distinct(field="product_type")
-        product_types_list = []
-        if product_types is not None:
-            for type in product_types:
-                print(type.product_type)
-                product_types_list.append(type.product_type)
-        return json.dumps(product_types_list)
+        return json.dumps(product_types)
+    
+    @classmethod
+    def get_product_list(cls, product_type):
+        product_list = Products.objects(product_type=product_type)
+        json_data = product_list.to_json()
+        return json_data
+    
+    @classmethod
+    def products_delete(cls, product_names):
+        try:
+            delete_list = []
+            for product_name in product_names:
+                print(product_names)
+                item = Products.objects(product_name=product_name).first()
+                delete_list.append(item.product_name)
+                if item:
+                    item.delete()
+            return "删除成功"
+        except Exception as e:
+            print(e)
+            return e
+        
+                
+        
+    @classmethod
+    def seed(cls, data):
+        print("call products seed")
+        try:
+            for product in data:
+                pprint(product)
+                item = Products.objects(product_name=product["product_name"]).first()
+                if item is None:
+                    print("create new product")
+                    item = Products()
+                item.product_id = product["product_id"]
+                item.product_name = product["product_name"]
+                item.single_original_price = float(product["single_original_price"])
+                item.discount = float(product["discount"])
+                item.product_type = product["product_type"]
+                
+                item.save()
+            return "数据保存成功"
+        except Exception as e:
+            print(e)
+            return e
+        
         
     
     
