@@ -1,13 +1,359 @@
 {% extends "base.html" %}
 
+{% block head %}
+    {{ super() }}
+
+    <script src="../static/bootstrap-select/dist/js/bootstrap-select.js"></script>
+    <link href="../static/bootstrap-select/dist/css/bootstrap-select.css" rel="stylesheet" />
+    <script src="../static/bootstrap-select/dist/js/i18n/defaults-zh_CN.js"></script>
+
+    <script src="../static/string_format.js"></script>
+
+{% endblock %}
+
 {% block page_content %}
-<div>
-    <a class="clickable text" data-toggle="collapse" 
-    data-target="#demo">
-    点击打开，再次点击折叠
-    </a>    
-    <div id="demo" class="collapse in">
-        testtesttest
+    <div id="toolbar">
+        <select id="batch_select" class="selectpicker show-tick" data-live-search="true" title="请选择产品类别">
+        </select>
+        <button id="remove_button" class="btn btn-danger" disabled>
+            <i class="glyphicon glyphicon-remove"></i> 删除
+        </button>
+        <button id="add_button" class="btn btn-info">
+            <i class="glyphicon glyphicon-plus"></i> 添加
+        </button>
+        <button id="save_button" class="btn btn-success">
+            <i class="glyphicon glyphicon-save"></i> 保存
+        </button>
+        <button id="mode_button" class="btn btn-default">
+            <i class="glyphicon glyphicon-retweet"></i> 本人模式
+        </button>
     </div>
-</div>
+    <table id="table" class="text-nowrap"  
+            data-toggle="table"
+            data-toolbar="#toolbar"
+            data-search="true"
+            data-show-columns="true"
+            data-show-export="true"
+            data-unique-id="id"
+            >  
+    </table>
+    <script>
+        'use strict';
+        var $table = $('#table');
+        $table.bootstrapTable({
+            columns: [{
+                "checkbox": true
+            },{
+                "field": 'product_id',
+                "title": '产品ID',
+                "sortable": true
+            },{
+                "field": 'product_name',
+                "title": '产品名称',
+                "sortable": true,
+                "editable": {
+                    "mode": "popup",
+                    "type": 'select',
+                    "title": '选择产品',
+                    "source": [{ value: "爱1", text: "爱1" }, { value: "爱2", text: "爱2" }, {value:"爱3",text:"爱3"}],
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            }, {
+                "field": 'product_count',
+                "title": '数量',
+                "sortable": true,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            }, {
+                "field": 'single_original_price',
+                "title": '原价(单)/欧元',
+                "sortable": true,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'discount',
+                "title": '折扣',
+                "sortable": true,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'single_buy_price',
+                "title": '实价(单)/欧元',
+                "sortable": true,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'total_buy_price',
+                "title": '实价(总)/欧元',
+                "sortable": true,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'single_sell_price',
+                "title": '售价(单)/人民币',
+                "sortable": true,
+                "visible": false,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'total_sell_price',
+                "title": '售价(总)/人民币',
+                "sortable": true,
+                "visible": false,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'single_profit',
+                "title": '利润(单)/人民币',
+                "sortable": true,
+                "visible": false,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'total_profit',
+                "title": '利润(总)/人民币',
+                "sortable": true,
+                "visible": false,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": "date",
+                "title": "日期",
+                "type": "text",
+                "sortable": true,
+                "editable": {
+                    "type": "date",
+                    "placement": "bottom",
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": "batch_info",
+                "title": "批次",
+                "type": "text",
+                "sortable": true,
+                "editable": {
+                    "type": "text",
+                    "placement": "bottom",
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            }]
+        });
+
+        /* 批次选择 */
+        var $batch = $("#batch_select");
+        var batch_name = $batch.val();
+        $.ajax({
+            url:"/get_batch_list",
+            data:"",
+            type:"POST",
+            dataType:"json",
+            success:function(data){
+                console.log(data);
+                $.each(data, function(index, value){
+                    console.log(value);
+                    $batch.append("<option value='{0}'>{0}</option>".format(value));
+                    $batch.selectpicker("refresh");
+                });
+            }
+        });
+        
+        $batch.on("changed.bs.select", function(event, clickedIndex, newValue, oldValue){
+            var batch_name = $batch.val();
+            $.ajax({
+                url:"/get_purchase",
+                data:batch_name,
+                type:"POST",
+                dataType:"json",
+                success:function(data){
+                    console.log(data)
+                    $table.bootstrapTable("load", data);
+                }
+            })
+        });
+
+        var $remove_button = $("#remove_button");
+        $table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', function () {
+            $remove_button.prop('disabled', !$table.bootstrapTable('getSelections').length);
+        });
+    
+        $remove_button.click(function(){
+            let infos = getRowSelections();
+            let data = JSON.stringify(infos);
+            console.log("data : {0}".format(data))
+            /*
+            $.ajax({
+                url:"/purchase_delete",
+                data:data,
+                type:"POST",
+                dataType:"text",
+                success:function(data){
+                    alert(data);
+                }
+            });
+            */
+            $table.bootstrapTable("remove", {
+                field: "product_id",
+                values: ids
+            });
+            $remove_button.prop('disabled', true);
+        });
+
+        /* 返回checkbox选中的行的信息 */
+        function getRowSelections() {
+            return $.map($table.bootstrapTable('getSelections'), function (row) {
+                console.log(row.product_id);
+                return [row.product_id, row.batch_info];
+            });
+        }
+
+        /* 初始化默认添加数据 */
+        /* 获得当前日期 */
+        function getToday(){
+            var current_date = new Date();
+            var year = current_date.getFullYear();
+            var month = current_date.getMonth() + 1;
+            var day = current_date.getDate();
+            if (month < 10){
+                month = "0" + month;
+            }
+            if (day < 10){
+                day = "0" + day;
+            }
+            var today =  year + "-" + month + "-" + day;
+            return today;
+        }
+
+        /* 添加数据 */
+        var today = getToday();
+        console.log(today);
+        function get_default_data(old_id){
+            var default_data = [{
+                "product_id": 0,
+                "product_name": "爱1",
+                "product_count": "1",
+                "single_original_price": "10",
+                "discount": "0.9",
+                "single_buy_price": "9",
+                "total_buy_price": "9",
+                "single_sell_price": "145",
+                "total_sell_price": "145",
+                "single_profit": "73",
+                "total_profit": "73",
+                "date": today,
+                "batch_info": batch_name
+            }];
+            var new_id = old_id + 1;
+            console.log(new_id);
+            default_data[0]["product_id"] = new_id;
+            return default_data;
+        }
+
+        var $add_button = $("#add_button");
+        $add_button.click(function() {
+            let td = $table.find("tr").last().find("td").eq(1);
+            let old_id;
+            if (td.length == 0){
+                old_id = 0;
+            } else {
+                old_id = td.text();
+            }
+            console.log("old_id: "+old_id);
+            $table.bootstrapTable('append', get_default_data(parseInt(old_id)));
+            $table.bootstrapTable('scrollTo', 'bottom');
+        });
+
+        //点击保存，将产品信息保存到数据库 
+        var $save_button = $("#save_button");
+        $save_button.click(function() {
+            let table_data = $table.bootstrapTable("getData");
+            let data = JSON.stringify(table_data)
+            console.log(data);
+            save_table_data(data);
+        });
+
+        function save_table_data(data){
+            $.ajax({
+                url:"/purchase_save",
+                data:data,
+                type:"POST",
+                dataType:"text",
+                success:function(data){
+                    alert("返回数据：" + data);
+                }
+            }) 
+        }
+
+        /* 切换显示模式 */
+        var $mode = $("#mode_button");
+        var columns_list = ["single_sell_price", "total_sell_price", "single_profit", "total_profit"]
+        $mode.click(function(){
+            var old_mode = $.trim($(this).text());
+            var new_mode;
+            var mode_operation;
+            if (old_mode=="本人模式"){
+                new_mode = "对帐模式";
+                mode_operation = "showColumn";
+            } else {
+                new_mode = "本人模式";
+                mode_operation = "hideColumn";
+            }
+            var new_html = $(this).html().replace(old_mode, new_mode);
+            $(this).html(new_html);
+            var columns_name;
+            $.each(columns_list, function(index, value){
+                $table.bootstrapTable(mode_operation, value);
+            });
+        });
+    </script>
 {% endblock %}
