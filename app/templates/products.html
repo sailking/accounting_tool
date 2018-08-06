@@ -2,17 +2,20 @@
 
 {% block head %}
     {{ super() }}
-    <!-- 4. bootstrap1-select组件引用 -->
+
     <script src="../static/bootstrap-select/dist/js/bootstrap-select.js"></script>
     <link href="../static/bootstrap-select/dist/css/bootstrap-select.css" rel="stylesheet" />
     <script src="../static/bootstrap-select/dist/js/i18n/defaults-zh_CN.js"></script>
 
+    <script src="../static/string_format.js"></script>
+
 {% endblock %}
 
 {% block page_content %}
-    <select id="type_select" class="selectpicker show-tick" data-live-search="true" title="请选择产品类别">
-    </select>
+<div class="container">
     <div id="toolbar">
+        <select id="type_select" class="selectpicker show-tick" data-live-search="true" title="请选择产品类别">
+        </select>
         <button id="remove_button" class="btn btn-danger" disabled>
             <i class="glyphicon glyphicon-remove"></i> 删除
         </button>
@@ -23,26 +26,24 @@
             <i class="glyphicon glyphicon-save"></i> 保存
         </button>
     </div>
-    <table id="table"  
+    <div>
+    <table id="table" class="text-nowrap"  
             data-toggle="table"
             data-toolbar="#toolbar"
             data-search="true"
             data-show-columns="true"
             data-show-export="true"
-            data-unique-id="id"
+            data-unique-id="product_id"
             >  
     </table>
+    </div>
 
     <script>
-        'use strict'
+        'use strict';
         var $table = $('#table');
         $table.bootstrapTable({
             columns:[{
                 "checkbox": true
-            },{
-                "field": 'product_id',
-                "title": '产品ID',
-                "sortable": true
             },{
                 "field": 'product_name',
                 "title": '产品名称',
@@ -68,7 +69,7 @@
             },{
                 "field": 'discount',
                 "title": '折扣',
-                "sortable": true,
+                
                 "editable": {
                     "mode": "inline",
                     "type": 'text',
@@ -77,7 +78,7 @@
                     }
                 }
             },{
-                "field": 'type',
+                "field": 'product_type',
                 "title": '产品种类',
                 "editable": {
                     "mode": "inline",
@@ -108,24 +109,26 @@
             }
             */
         });
-
         /* 种类选择 */
         var $type = $("#type_select");
         var type_name = $type.val();
         $.ajax({
-            url:"/get_product_list",
+            url:"/get_type_list",
             data:"",
             type:"POST",
             dataType:"json",
             success:function(data){
                 console.log(data);
+                $.each(data, function(index, value){
+                    console.log(value);
+                    $type.append("<option value='{0}'>{0}</option>".format(value));
+                    $type.selectpicker("refresh");
+                });
             }
         });
-
-        console.log("默认种类: " + type_name);
+        
         $type.on("changed.bs.select", function(event, clickedIndex, newValue, oldValue){
-            batch_name = $type.val();
-            alert("选择种类：" + type_name);
+            var type_name = $type.val();
             $.ajax({
                 url:"/get_product_list",
                 data:type_name,
@@ -138,28 +141,59 @@
             })
         });
 
+
+        var $remove_button = $("#remove_button");
+        $table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', function () {
+            $remove_button.prop('disabled', !$table.bootstrapTable('getSelections').length);
+        });
+        
+        $remove_button.click(function(){
+            let names = getProductSelections();
+            let data = JSON.stringify(names);
+            console.log("data : {0}".format(data))
+            $.ajax({
+                url:"/data_delete",
+                data:data,
+                type:"POST",
+                dataType:"text",
+                success:function(data){
+                    alert(data);
+                }
+            });
+            $table.bootstrapTable("remove", {
+                field: "product_name",
+                values: names
+            });
+            $remove_button.prop('disabled', true);
+        });
+
+        /* 返回checkbox选中的列的id */
+        function getProductSelections() {
+            return $.map($table.bootstrapTable('getSelections'), function (row) {
+                console.log(row.product_name);
+                return row.product_name
+            });
+        }
+
         /* 添加数据 */
         function get_default_data(old_id){
             var default_data = [{
-                "product_id": 0,
                 "product_name": "",
                 "single_original_price": "1",
                 "discount": "0.9",
-                "product_count": 1,
-                "single_buy_price": "1",
-                "total_buy_price": "0.9",
-                "type": "杂货"
+                "single_buy_price": "0.9",
+                "product_type": "杂货"
             }];
             var new_id = old_id + 1;
             console.log(new_id);
             default_data[0]["product_id"] = new_id;
+            default_data[0]["product_type"] = $type.val();
             return default_data;
         }
-
         var $add_button = $("#add_button");
         $add_button.click(function() {
-            var td = $table.find("tr").last().find("td").eq(1);
-            var old_id;
+            let td = $table.find("tr").last().find("td").eq(1);
+            let old_id;
             if (td.length == 0){
                 old_id = 0;
             } else {
@@ -169,9 +203,26 @@
             $table.bootstrapTable('append', get_default_data(parseInt(old_id)));
             $table.bootstrapTable('scrollTo', 'bottom');
         });
-
-        //todo: 产品填加
-
-        /* 总价根据原价，折扣，数量变化 */
+        //点击保存，将产品信息保存到数据库 
+        var $save_button = $("#save_button");
+        
+        $save_button.click(function() {
+            let table_data = $table.bootstrapTable("getData");
+            let data = JSON.stringify(table_data)
+            console.log(data);
+            save_table_data(data);
+        });
+        function save_table_data(data){
+            $.ajax({
+                url:"/products_save",
+                data:data,
+                type:"POST",
+                dataType:"text",
+                success:function(data){
+                    alert("返回数据：" + data);
+                }
+            }) 
+        }
     </script>
+
 {% endblock %}
