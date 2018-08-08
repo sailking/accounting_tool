@@ -36,6 +36,7 @@ class Purchase(DynamicDocument):
     date = StringField()
     postage = FloatField()
     packaging = FloatField()
+    product_type = StringField()
     batch_info = StringField()
     
     @classmethod
@@ -43,8 +44,11 @@ class Purchase(DynamicDocument):
         print("call save")
         try:
             for purchase in data:
-                pprint(purchase)
-                item = Purchase.objects(product_id=purchase["product_id"], batch_info=purchase["batch_info"]).first()
+                if purchase["batch_info"] in ["", None]:
+                    return("有批次未标明，请核对后重新保存")
+            
+            for purchase in data:    
+                item = Purchase.objects(product_id=purchase["product_id"], batch_info=purchase["batch_info"], product_type=purchase["product_type"]).first()
                 if item is None:
                     print("create new")
                     item = Purchase()
@@ -61,6 +65,7 @@ class Purchase(DynamicDocument):
                 item.single_profit = float(purchase["single_profit"])
                 item.total_profit = float(purchase["total_profit"])
                 item.date = purchase["date"]
+                item.product_type = purchase["product_type"]
                 item.batch_info = purchase["batch_info"]
                 item.postage = 0.0
                    
@@ -71,20 +76,33 @@ class Purchase(DynamicDocument):
             print(e)
     
     @classmethod
-    def get_batch_list(cls):
-        batch_list = Purchase.objects.distinct(field="batch_info")
+    def get_batch_list(cls, type_name):
+        batch_list = Purchase.objects(product_type=type_name).distinct(field="batch_info")
         print(batch_list)
         return json.dumps(batch_list)
         
     @classmethod
-    def get_purchase(cls, batch_name):
-        products = Purchase.objects(batch_info=batch_name)
+    def get_purchase(cls, info):
+        product_type, batch_info = info
+        products = Purchase.objects(product_type=product_type, batch_info=batch_info)
         json_data = products.to_json()
         return json_data
     
     @classmethod
-    def purchase_delete(cls):
-        pass
+    def purchase_delete(cls, info):
+        product_id, product_type, batch_info = info
+        try:
+            item = Purchase.objects(product_id=product_id, product_type=product_type, batch_info=batch_info).first()
+            if item:
+                item.delete()
+                return "{}->{}->{}".format(product_type, batch_info, product_id)
+            else:
+                print("没有此项")
+                return ""
+        except Exception as e:
+            print(e)
+            return e
+        
     
 class Products(DynamicDocument):
     product_id = IntField()
@@ -107,6 +125,22 @@ class Products(DynamicDocument):
         return json_data
     
     @classmethod
+    def get_product_names(cls, product_type):
+        """首页
+                        添加产品后，点击修改产品名称，此时从products collection中读取该产品类型中的所有产品名称
+        """
+        product_names_list = Products.objects(product_type=product_type).distinct(field="product_name")
+        product_names_list.sort()
+        return json.dumps(product_names_list)
+    
+    @classmethod
+    def get_product(cls, product_name):
+        print(product_name)
+        product = Products.objects(product_name=product_name).first()
+        json_data = product.to_json()
+        return json_data
+    
+    @classmethod
     def products_delete(cls, product_names):
         try:
             delete_list = []
@@ -121,8 +155,6 @@ class Products(DynamicDocument):
             print(e)
             return e
         
-                
-        
     @classmethod
     def seed(cls, data):
         print("call products seed")
@@ -133,7 +165,6 @@ class Products(DynamicDocument):
                 if item is None:
                     print("create new product")
                     item = Products()
-                item.product_id = product["product_id"]
                 item.product_name = product["product_name"]
                 item.single_original_price = float(product["single_original_price"])
                 item.discount = float(product["discount"])
@@ -144,9 +175,4 @@ class Products(DynamicDocument):
         except Exception as e:
             print(e)
             return e
-        
-        
-    
-    
-    
-    
+ 
