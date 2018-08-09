@@ -5,7 +5,7 @@ from pprint import pprint
 from flask import Flask, render_template, request
 from flask_bootstrap import Bootstrap
 
-from app.models import Purchase, Products, connect_database
+from app.models import Purchase, Products, Statistics, connect_database
 
 app = Flask(__name__)
 
@@ -23,8 +23,8 @@ def get_purchase():
     original_data = request.get_data()
     return Purchase.get_purchase(json.loads(original_data))
 
-@app.route("/purchase_save", methods=["POST"])
-def purchase_save():
+@app.route("/save_purchase", methods=["POST"])
+def save_purchase():
     original_data = request.get_data()
     data = json.loads(original_data)
     return Purchase.seed(data)
@@ -65,24 +65,25 @@ def products_delete():
 
 @app.route("/products_save", methods=["POST"])
 def products_save():
-    original_data = request.get_data()   #从post请求中获得原始json数据
+    original_data = request.get_data()
     data = json.loads(original_data)
     return Products.seed(data)
 
+@app.route("/save_statistic", methods=["POST"])
+def save_statistic():
+    original_data = request.get_data()
+    data = json.loads(original_data)
+    return Statistics.seed(data)
+
+@app.route("/get_statistics", methods=["POST"])
+def get_statistics():
+    original_data = request.get_data()
+    return Statistics.get_statistics(json.loads(original_data))
+
 @app.route("/logistics")
 def logistics():
-    return render_template("logistics.html") 
-
-@app.route("/tables")
-def tables():
-    return render_template("table.html")
-
-@app.route("/base")
-def test():
-    return render_template("base.html")
+    return render_template("logistics.html")
 
 if __name__ == "__main__":
     connect_database()
     app.run(debug=True)
-    
-    
