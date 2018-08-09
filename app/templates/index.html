@@ -39,7 +39,6 @@
             data-toolbar="#toolbar"
             data-search="true"
             data-show-columns="true"
-            data-show-export="true"
             >  
     </table>
     <h4>统计信息:&nbsp&nbsp 当前汇率: &nbsp&nbsp<a href="#" id="change_rate" data-type="text">8.0</a></h4>
@@ -48,15 +47,21 @@
             data-unique-id="batch_info"
             >  
     </table>
+    <p></p>
+    <button id="export_button" class="btn btn-default">
+        <i class="glyphicon glyphicon-share"></i> 导出为EXCEL
+    </button>
+
     <script>
         'use strict';
-        var $change_rate = $('#change_rate');
+        var $change_rate = $('#change_rate').text();
         var $table = $('#table');
         var $statistic_table = $("#statistic_table");
         var $type = $("#type_select");
         var $batch = $("#batch_select");
+        var $export = $('#export_button');
 
-        $change_rate.editable({
+        $('#change_rate').editable({
             type:"text",
             title:"请输入当前汇率"
         });
@@ -103,7 +108,17 @@
                         if (!v) return '不能为空';  
                     }
                 }
-            }, {
+            },{
+                "field": 'product_count',
+                "title": '数量',
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
                 "field": 'single_original_price',
                 "title": '原价(单)/欧元',
                 "editable": {
@@ -126,16 +141,6 @@
             },{
                 "field": 'single_buy_price',
                 "title": '实价(单)/欧元',
-                "editable": {
-                    "mode": "inline",
-                    "type": 'text',
-                    "validate": function (v) {
-                        if (!v) return '不能为空';  
-                    }
-                }
-            },{
-                "field": 'product_count',
-                "title": '数量',
                 "editable": {
                     "mode": "inline",
                     "type": 'text',
@@ -238,25 +243,78 @@
                     })
                 }
                 row.single_buy_price =  row.single_original_price * row.discount;
+                row.single_buy_price = row.single_buy_price.toFixed(3);
                 row.total_buy_price = row.single_buy_price * row.product_count;
-
+                row.total_buy_price = row.total_buy_price.toFixed(3);
+                row.total_sell_price = row.single_sell_price * row.product_count;
+                row.single_profit = row.single_sell_price - row.single_buy_price * parseFloat($change_rate);
+                row.single_profit = row.single_profit.toFixed(3);
+                row.total_profit = row.single_profit * row.product_count;
                 console.log(row.total_buy_price);
 
                 $table.bootstrapTable("append", []);
+            },
+            onEditableInit: function(){
+                console.log("产品表格初始化");
+                let data;
+                let info = JSON.stringify([$type.val(), $batch.val()]);
+                if ($batch.val()){
+                    $.ajax({
+                    url:"/get_statistics",
+                    data:info,
+                    type:"POST",
+                    dataType:"json",
+                    success:function(data){
+                        let statistic_data = [{}];
+                        let change_rate = parseFloat($change_rate);
+                        console.log("change_rate: "+change_rate);
+                        statistic_data[0]["product_type"] = $type.val();
+                        statistic_data[0]["batch_info"] = $batch.val();
+                        statistic_data[0]["product_count"] = $table.find("tr").length - 1;
+                        statistic_data[0]["total_value"] = get_sum($table.find("a[data-name=single_original_price]"));
+                        statistic_data[0]["total_cost_eu"] = get_sum($table.find("a[data-name=total_buy_price]"));
+                        statistic_data[0]["total_cost_eu"] = statistic_data[0]["total_cost_eu"].toFixed(2);
+                        statistic_data[0]["total_cost_cn"] = statistic_data[0]["total_cost_eu"]*change_rate;
+                        statistic_data[0]["postage"] = $statistic_table.find("a[data-name=postage]").text()
+                        statistic_data[0]["packing"] = $statistic_table.find("a[data-name=packing]").text()
+                        if (data){
+                            statistic_data[0]["postage"] = data["postage"];
+                            statistic_data[0]["packing"] = data["packing"];
+                        }
+                        statistic_data[0]["total_profit_cn"] = get_sum($table.find("a[data-name=total_profit]")) - parseFloat(statistic_data[0]["postage"]) - parseFloat(statistic_data[0]["packing"]);
+                        statistic_data[0]["total_profit_cn"] = statistic_data[0]["total_profit_cn"].toFixed(2)
+                        statistic_data[0]["total_profit_eu"] = parseFloat(statistic_data[0]["total_profit_cn"])/change_rate;
+                        $statistic_table.bootstrapTable("load", statistic_data);
+                    }
+                })
+                }   
             }
         })
             
+        function get_sum(all_cells){
+            let sum = 0;
+            if (all_cells.length > 0){
+                all_cells.each(function(){
+                    sum = sum + parseFloat($(this).text());
+                });
+            }
+            if (sum == 0){
+                return undefined;
+            }
+            console.log("sum: "+sum);
+            return sum;
+        }
 
         $statistic_table.bootstrapTable({
             columns: [{
+                "field": "product_type",
+                "title": '产品种类',
+            },{
                 "field": "batch_info",
                 "title": '批次',
             },{
                 "field": "product_count",
                 "title": '货品总数',
-            },{
-                "field": "total_value",
-                "title": '总价格/欧元',
             },{
                 "field": "total_cost_eu",
                 "title": '总成本/欧元',
@@ -266,16 +324,38 @@
             },{
                 "field": "postage",
                 "title": '邮费',
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
             },{
                 "field": "packing",
                 "title": '包装材料',
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
             },{
                 "field": "total_profit_eu",
                 "title": '总利润/欧元',
+                "visible": false,
             },{
                 "field": "total_profit_cn",
-                "title": '总利润/欧元',
-            }]
+                "title": '总利润/人民币',
+                "visible": false,
+            }],
+            onEditableSave: function(field, row, oldValue, $el){
+                console.log(field);
+                if (["postage", "packing"].indexOf(field) != -1){
+                    console.log("somthing changed");
+                }
+            }
         });
 
         /* 批次选择 */
@@ -385,16 +465,8 @@
         function get_default_data(old_id){
             var default_data = [{
                 "product_id": 0,
-                "product_name": "",
                 "product_count": "1",
-                "single_original_price": "10",
-                "discount": "0.9",
-                "single_buy_price": "9",
-                "total_buy_price": "9",
-                "single_sell_price": "145",
-                "total_sell_price": "145",
-                "single_profit": "73",
-                "total_profit": "73",
+                "single_sell_price": "未设置",
                 "date": today,
                 "product_type": $type.val(),
                 "batch_info": $batch.val()
@@ -421,27 +493,35 @@
         var $save_button = $("#save_button");
         $save_button.click(function() {
             let table_data = $table.bootstrapTable("getData");
-            let data = JSON.stringify(table_data)
-            console.log(data);
-            save_table_data(data);
+            let purchase_data = JSON.stringify(table_data)
+            let statistic_table_data = $statistic_table.bootstrapTable("getData");
+            let statistic_data = JSON.stringify(statistic_table_data);
+            console.log(purchase_data);
+            save_table_data(purchase_data, "/save_purchase");
+            console.log(statistic_data);
+            save_table_data(statistic_data, "/save_statistic")
         });
 
-        function save_table_data(data){
+        function save_table_data(data, aim_url){
             $.ajax({
-                url:"/purchase_save",
+                url:aim_url,
                 data:data,
                 type:"POST",
                 dataType:"text",
                 success:function(data){
-                    alert("返回数据：" + data);
-                    update_batch_select();
+                    console.log(data);
+                    if (data !== "None"){
+                        alert("返回数据：" + data);
+                        update_batch_select();
+                    }
                 }
             }) 
         }
 
         /* 切换显示模式 */
         var $mode = $("#mode_button");
-        var columns_list = ["single_sell_price", "total_sell_price", "single_profit", "total_profit"]
+        var table_columns_list = ["single_sell_price", "total_sell_price", "single_profit", "total_profit"]
+        var statistic_table_columns_list = ["total_profit_eu", "total_profit_cn"];
         $mode.click(function(){
             var old_mode = $.trim($(this).text());
             var new_mode;
@@ -456,8 +536,11 @@
             var new_html = $(this).html().replace(old_mode, new_mode);
             $(this).html(new_html);
             var columns_name;
-            $.each(columns_list, function(index, value){
+            $.each(table_columns_list, function(index, value){
                 $table.bootstrapTable(mode_operation, value);
+            });
+            $.each(statistic_table_columns_list, function(index, value){
+                $statistic_table.bootstrapTable(mode_operation, value);
             });
         });
     </script>
