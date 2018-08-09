@@ -11,7 +11,7 @@ import pymongo
 import mongoengine
 from mongoengine.document import DynamicDocument
 from mongoengine.fields import StringField, IntField, FloatField, DateTimeField
-from numpy.lib import stride_tricks
+from pymongo.errors import ServerSelectionTimeoutError
 from ipywidgets.widgets.widget_float import FloatSlider
 
 
@@ -19,8 +19,14 @@ def connect_database():
         cf = configparser.ConfigParser()
         cf.read("config.cfg")
         db = mongoengine.connect(db = cf.get("Database", "db"),
-                                 host = cf.get("Database", "host"))
-        
+                                 host = cf.get("Database", "host"),
+                                 serverSelectionTimeoutMS=120)
+        try:
+            info = db.server_info() # Forces a call.
+        except ServerSelectionTimeoutError:
+            print("server is down.")
+            os._exit(0)
+            
 class Purchase(DynamicDocument):
     product_id = IntField()
     product_name = StringField()
@@ -34,18 +40,20 @@ class Purchase(DynamicDocument):
     single_profit = FloatField()
     total_profit = FloatField()
     date = StringField()
-    postage = FloatField()
     packaging = FloatField()
     product_type = StringField()
     batch_info = StringField()
     
     @classmethod
     def seed(cls, data):
-        print("call save")
+        print("call purchase save")
+        if not data:
+            return "None"
         try:
+            print(data)
             for purchase in data:
-                if purchase["batch_info"] in ["", None]:
-                    return("有批次未标明，请核对后重新保存")
+                if purchase["batch_info"] in ["", None] or purchase["single_sell_price"]=="未设置":
+                    return("有未标明，请核对后重新保存")
             
             for purchase in data:    
                 item = Purchase.objects(product_id=purchase["product_id"], batch_info=purchase["batch_info"], product_type=purchase["product_type"]).first()
@@ -67,13 +75,12 @@ class Purchase(DynamicDocument):
                 item.date = purchase["date"]
                 item.product_type = purchase["product_type"]
                 item.batch_info = purchase["batch_info"]
-                item.postage = 0.0
                    
                 item.save()
                 
-            return "数据保存成功"
+            return "货品保存成功"
         except Exception as e:
-            print(e)
+            return e
     
     @classmethod
     def get_batch_list(cls, type_name):
@@ -171,8 +178,47 @@ class Products(DynamicDocument):
                 item.product_type = product["product_type"]
                 
                 item.save()
-            return "数据保存成功"
+            return "产品信息保存成功"
         except Exception as e:
             print(e)
             return e
- 
+        
+class Statistics(DynamicDocument):
+    product_type = StringField()
+    batch_info = StringField()
+    postage = FloatField()
+    packing = FloatField()
+    
+    @classmethod
+    def seed(cls, data):
+        print("call statistic save")
+        if not data:
+            return "None"
+        try:
+            for batch in data:
+                pprint(batch)
+                item = Statistics.objects(product_type=batch["product_type"], batch_info=batch["batch_info"]).first()
+                if item is None:
+                    print("create new Statistics")
+                    item = Statistics()
+                item.product_type = batch["product_type"]
+                item.batch_info = batch["batch_info"]
+                item.packing = float(batch["packing"])
+                item.postage = float(batch["postage"])
+
+                item.save()
+            return "统计信息保存成功"
+        except Exception as e:
+            print(e)
+            return e
+        
+    @classmethod
+    def get_statistics(cls, info):
+        product_type, batch_info = info
+        statistic_data = Statistics.objects(product_type=product_type, batch_info=batch_info).first()
+        if statistic_data is not None:
+            json_data = statistic_data.to_json()
+        else:
+            json_data = json.dumps(statistic_data)
+        print(json_data)
+        return json_data
