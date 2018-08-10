@@ -52,7 +52,7 @@ class Purchase(DynamicDocument):
         try:
             print(data)
             for purchase in data:
-                if purchase["batch_info"] in ["", None] or purchase["single_sell_price"]=="未设置":
+                if purchase["batch_info"] == "未设置" or purchase["single_sell_price"]=="未设置":
                     return("有未标明，请核对后重新保存")
             
             for purchase in data:    
@@ -62,6 +62,7 @@ class Purchase(DynamicDocument):
                     item = Purchase()
 
                 item.product_id = purchase["product_id"]
+                item.product_type = purchase["product_type"]
                 item.product_name = purchase["product_name"]
                 item.product_count = int(purchase["product_count"])
                 item.single_original_price = float(purchase["single_original_price"])
@@ -73,7 +74,6 @@ class Purchase(DynamicDocument):
                 item.single_profit = float(purchase["single_profit"])
                 item.total_profit = float(purchase["total_profit"])
                 item.date = purchase["date"]
-                item.product_type = purchase["product_type"]
                 item.batch_info = purchase["batch_info"]
                    
                 item.save()
@@ -167,16 +167,17 @@ class Products(DynamicDocument):
         print("call products seed")
         try:
             for product in data:
-                pprint(product)
+                print(product)
                 item = Products.objects(product_name=product["product_name"]).first()
                 if item is None:
                     print("create new product")
                     item = Products()
+                    
+                item.product_type = product["product_type"]
                 item.product_name = product["product_name"]
                 item.single_original_price = float(product["single_original_price"])
                 item.discount = float(product["discount"])
-                item.product_type = product["product_type"]
-                
+
                 item.save()
             return "产品信息保存成功"
         except Exception as e:
