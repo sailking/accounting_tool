@@ -4,6 +4,7 @@ from pprint import pprint
 
 from flask import Flask, render_template, request
 from flask_bootstrap import Bootstrap
+import pandas
 
 from app.models import Purchase, Products, Statistics, connect_database
 
@@ -83,6 +84,15 @@ def get_statistics():
 @app.route("/logistics")
 def logistics():
     return render_template("logistics.html")
+
+@app.route("/export_data", methods=["POST"])
+def export_data():
+    original_data = request.get_data()
+    data = json.loads(original_data)
+    head, body = data
+    print(head)
+    print(body)
+    return "success"
 
 if __name__ == "__main__":
     connect_database()
