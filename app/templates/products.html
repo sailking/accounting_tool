@@ -45,6 +45,16 @@
             columns:[{
                 "checkbox": true
             },{
+                "field": 'product_type',
+                "title": '产品种类',
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
                 "field": 'product_name',
                 "title": '产品名称',
                 "sortable": true,
@@ -70,16 +80,6 @@
                 "field": 'discount',
                 "title": '折扣',
                 
-                "editable": {
-                    "mode": "inline",
-                    "type": 'text',
-                    "validate": function (v) {
-                        if (!v) return '不能为空';  
-                    }
-                }
-            },{
-                "field": 'product_type',
-                "title": '产品种类',
                 "editable": {
                     "mode": "inline",
                     "type": 'text',
@@ -178,11 +178,11 @@
         /* 添加数据 */
         function get_default_data(old_id){
             var default_data = [{
+                "product_type": "杂货",
                 "product_name": "",
                 "single_original_price": "1",
                 "discount": "0.9",
                 "single_buy_price": "0.9",
-                "product_type": "杂货"
             }];
             var new_id = old_id + 1;
             console.log(new_id);
