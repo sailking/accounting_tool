@@ -54,16 +54,47 @@
 
     <script>
         'use strict';
-        var $change_rate = $('#change_rate').text();
+        var $change_rate = $('#change_rate');
         var $table = $('#table');
         var $statistic_table = $("#statistic_table");
         var $type = $("#type_select");
         var $batch = $("#batch_select");
         var $export = $('#export_button');
+        var statistic_data = [{}];
+        
+        $export.on('click', function(){
+            console.log("clicked");
+            let visible_th = $table.find("th");
+            let visible_columns_name_dict = {}
+            visible_th.each(function(){
+                console.log($(this).attr("data-field"));
+                console.log($(this).find("div.th-inner").text());
+                visible_columns_name_dict[$(this).attr("data-field")] = $(this).find("div.th-inner").text();
+            })
+            console.log(visible_columns_name_dict);
+            let table_data = $table.bootstrapTable('getData');
+            let info = JSON.stringify([visible_columns_name_dict, table_data]);
+            console.log(info);
+            $.ajax({
+                url:"/export_data",
+                data:info,
+                type:"POST",
+                dataType:"text",
+                success:function(data){
+                    console.log(data);
+                }
+            })
+        });
+
 
         $('#change_rate').editable({
             type:"text",
             title:"请输入当前汇率"
+        });
+
+        $('#change_rate').on('save', function(e, params){
+            $table.bootstrapTable("append",[]);
+            $statistic_table.bootstrapTable("append",[]);
         });
 
         $table.bootstrapTable({
@@ -226,6 +257,7 @@
                 }
             }],
             onEditableSave: function (field, row, oldValue, $el){
+                let change_rate = parseFloat($change_rate.text());
                 if (field == "product_name"){
                     $.ajax({
                     url:"/get_product",
@@ -243,13 +275,14 @@
                     })
                 }
                 row.single_buy_price =  row.single_original_price * row.discount;
-                row.single_buy_price = row.single_buy_price.toFixed(3);
+                row.single_buy_price = row.single_buy_price.toFixed(2);
                 row.total_buy_price = row.single_buy_price * row.product_count;
-                row.total_buy_price = row.total_buy_price.toFixed(3);
+                row.total_buy_price = row.total_buy_price.toFixed(2);
                 row.total_sell_price = row.single_sell_price * row.product_count;
-                row.single_profit = row.single_sell_price - row.single_buy_price * parseFloat($change_rate);
-                row.single_profit = row.single_profit.toFixed(3);
+                row.single_profit = row.single_sell_price - row.single_buy_price * parseFloat(change_rate);
+                row.single_profit = row.single_profit.toFixed(2);
                 row.total_profit = row.single_profit * row.product_count;
+                row.total_profit = row.total_profit.toFixed(2);
                 console.log(row.total_buy_price);
 
                 $table.bootstrapTable("append", []);
@@ -265,28 +298,30 @@
                     type:"POST",
                     dataType:"json",
                     success:function(data){
-                        let statistic_data = [{}];
-                        let change_rate = parseFloat($change_rate);
-                        console.log("change_rate: "+change_rate);
-                        statistic_data[0]["product_type"] = $type.val();
-                        statistic_data[0]["batch_info"] = $batch.val();
-                        statistic_data[0]["product_count"] = $table.find("tr").length - 1;
-                        statistic_data[0]["total_value"] = get_sum($table.find("a[data-name=single_original_price]"));
-                        statistic_data[0]["total_cost_eu"] = get_sum($table.find("a[data-name=total_buy_price]"));
-                        statistic_data[0]["total_cost_eu"] = statistic_data[0]["total_cost_eu"].toFixed(2);
-                        statistic_data[0]["total_cost_cn"] = statistic_data[0]["total_cost_eu"]*change_rate;
-                        statistic_data[0]["postage"] = $statistic_table.find("a[data-name=postage]").text()
-                        statistic_data[0]["packing"] = $statistic_table.find("a[data-name=packing]").text()
-                        if (data){
-                            statistic_data[0]["postage"] = data["postage"];
-                            statistic_data[0]["packing"] = data["packing"];
+                            let change_rate = parseFloat($change_rate.text());
+                            console.log("change_rate: "+change_rate);
+                            statistic_data[0]["product_type"] = $type.val();
+                            statistic_data[0]["batch_info"] = $batch.val();
+                            statistic_data[0]["product_count"] = $table.find("tr").length - 1;
+                            statistic_data[0]["total_value"] = get_sum($table.find("a[data-name=single_original_price]"));
+                            statistic_data[0]["total_cost_eu"] = get_sum($table.find("a[data-name=total_buy_price]"));
+                            statistic_data[0]["total_cost_eu"] = statistic_data[0]["total_cost_eu"].toFixed(2);
+                            statistic_data[0]["total_cost_cn"] = statistic_data[0]["total_cost_eu"]*change_rate;
+                            statistic_data[0]["total_cost_cn"] = statistic_data[0]["total_cost_cn"].toFixed(2);
+                            statistic_data[0]["postage"] = $statistic_table.find("a[data-name=postage]").text()
+                            statistic_data[0]["packing"] = $statistic_table.find("a[data-name=packing]").text()
+                            if (data){
+                                statistic_data[0]["postage"] = data["postage"];
+                                statistic_data[0]["packing"] = data["packing"];
+                            }
+                            statistic_data[0]["total_gross_profit_cn"] = get_sum($table.find("a[data-name=total_profit]"));
+                            statistic_data[0]["total_profit_cn"] = statistic_data[0]["total_gross_profit_cn"] - parseFloat(statistic_data[0]["postage"]) - parseFloat(statistic_data[0]["packing"]);
+                            statistic_data[0]["total_profit_cn"] = statistic_data[0]["total_profit_cn"].toFixed(2)
+                            statistic_data[0]["total_profit_eu"] = parseFloat(statistic_data[0]["total_profit_cn"])/change_rate;
+                            statistic_data[0]["total_profit_eu"] = statistic_data[0]["total_profit_eu"].toFixed(2);
+                            $statistic_table.bootstrapTable("load", statistic_data);
                         }
-                        statistic_data[0]["total_profit_cn"] = get_sum($table.find("a[data-name=total_profit]")) - parseFloat(statistic_data[0]["postage"]) - parseFloat(statistic_data[0]["packing"]);
-                        statistic_data[0]["total_profit_cn"] = statistic_data[0]["total_profit_cn"].toFixed(2)
-                        statistic_data[0]["total_profit_eu"] = parseFloat(statistic_data[0]["total_profit_cn"])/change_rate;
-                        $statistic_table.bootstrapTable("load", statistic_data);
-                    }
-                })
+                    })
                 }   
             }
         })
@@ -353,8 +388,16 @@
             onEditableSave: function(field, row, oldValue, $el){
                 console.log(field);
                 if (["postage", "packing"].indexOf(field) != -1){
+                    let change_rate = parseFloat($change_rate.text());
                     console.log("somthing changed");
+                    row.total_profit_cn = statistic_data[0]["total_gross_profit_cn"] - parseFloat(row.postage) - parseFloat(row.packing);
+                    console.log(row.total_profit_cn);
+                    row.total_profit_cn = row.total_profit_cn.toFixed(2)
+                    row.total_profit_eu = row.total_profit_cn/change_rate;
+                    row.total_profit_eu = row.total_profit_eu.toFixed(2);
+                    $statistic_table.bootstrapTable("append", []);
                 }
+
             }
         });
 
@@ -465,11 +508,25 @@
         function get_default_data(old_id){
             var default_data = [{
                 "product_id": 0,
-                "product_count": "1",
-                "single_sell_price": "未设置",
-                "date": today,
                 "product_type": $type.val(),
-                "batch_info": $batch.val()
+                "product_name":"",
+                "product_count": "1",
+                "single_original_price":"",
+                "discount":"",
+                "single_buy_price":"",
+                "total_buy_price":"",
+                "single_sell_price": "未设置",
+                "total_sell_price":"",
+                "single_profit":"",
+                "total_profit":"",
+                "date": today,
+                "batch_info": function(){
+                    if ($batch.val()){
+                        return $batch.val();
+                    } else {
+                        return "未设置";
+                    }
+                }()
             }];
             var new_id = old_id + 1;
             default_data[0]["product_id"] = new_id;
@@ -492,20 +549,18 @@
         //点击保存，将产品信息保存到数据库 
         var $save_button = $("#save_button");
         $save_button.click(function() {
-            let table_data = $table.bootstrapTable("getData");
-            let purchase_data = JSON.stringify(table_data)
-            let statistic_table_data = $statistic_table.bootstrapTable("getData");
-            let statistic_data = JSON.stringify(statistic_table_data);
-            console.log(purchase_data);
-            save_table_data(purchase_data, "/save_purchase");
-            console.log(statistic_data);
-            save_table_data(statistic_data, "/save_statistic")
+            save_table_data($table, "/save_purchase");
+            save_table_data($statistic_table, "/save_statistic");
         });
 
-        function save_table_data(data, aim_url){
+        function save_table_data(table, aim_url){
+            let table_data = table.bootstrapTable("getData");
+            console.log("table_data: "+table_data);
+            let json_data = JSON.stringify(table_data);
+            console.log("json_data: "+json_data);
             $.ajax({
                 url:aim_url,
-                data:data,
+                data:json_data,
                 type:"POST",
                 dataType:"text",
                 success:function(data){
