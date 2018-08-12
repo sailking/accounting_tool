@@ -39,6 +39,10 @@
             data-toolbar="#toolbar"
             data-search="true"
             data-show-columns="true"
+            data-show-export="true"
+            data-sort-name="product_number"
+            data-sort-order="asc"
+            data-unique-id="product_id"
             >  
     </table>
     <h4>统计信息:&nbsp&nbsp 当前汇率: &nbsp&nbsp<a href="#" id="change_rate" data-type="text">8.0</a></h4>
@@ -61,19 +65,13 @@
         var $batch = $("#batch_select");
         var $export = $('#export_button');
         var statistic_data = [{}];
+        var $mode = $("#mode_button");
         
         $export.on('click', function(){
             console.log("clicked");
-            let visible_th = $table.find("th");
-            let visible_columns_name_dict = {}
-            visible_th.each(function(){
-                console.log($(this).attr("data-field"));
-                console.log($(this).find("div.th-inner").text());
-                visible_columns_name_dict[$(this).attr("data-field")] = $(this).find("div.th-inner").text();
-            })
-            console.log(visible_columns_name_dict);
-            let table_data = $table.bootstrapTable('getData');
-            let info = JSON.stringify([visible_columns_name_dict, table_data]);
+            let purchase_table_data = export_table_data($table);
+            let statistic_table_data = export_table_data($statistic_table);
+            let info = JSON.stringify([purchase_table_data, statistic_table_data]);
             console.log(info);
             $.ajax({
                 url:"/export_data",
@@ -85,6 +83,17 @@
                 }
             })
         });
+
+        function export_table_data(table){
+            let visible_th = table.find("th");
+            let visible_columns_name_dict = {};
+            visible_th.each(function(){
+                visible_columns_name_dict[$(this).attr("data-field")] = $(this).find("div.th-inner").text();
+            })
+            console.log(visible_columns_name_dict);
+            let table_data = table.bootstrapTable('getData');
+            return [visible_columns_name_dict, table_data];
+        }
 
 
         $('#change_rate').editable({
@@ -98,11 +107,17 @@
         });
 
         $table.bootstrapTable({
+            exportTypes:["csv"],
             columns: [{
-                "checkbox": true
+                "checkbox": true,
             },{
-                "field": 'product_id',
-                "title": '产品ID',
+                "field": 'product_number',
+                "title": '产品序号',
+                "sortable":true,
+                "editable": {
+                    "type": "text",
+                    "placement": "bottom"
+                }
             },{
                 "field": "product_type",
                 "title": "产品类别",
@@ -234,6 +249,41 @@
                     }
                 }
             },{
+                "field": "packaging",
+                "title": "纸箱/气柱",
+                "type": "text",
+                "editable": {
+                    "type": "text",
+                    "placement": "bottom",
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": "customer_name",
+                "title": "客户姓名",
+                "type": "text",
+                "sortable":true,
+                "editable": {
+                    "type": "text",
+                    "placement": "bottom",
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": "package_number",
+                "title": "快递单号",
+                "type": "text",
+                "sortable":true,
+                "editable": {
+                    "type": "text",
+                    "placement": "bottom",
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
                 "field": "date",
                 "title": "日期",
                 "type": "text",
@@ -302,20 +352,20 @@
                             console.log("change_rate: "+change_rate);
                             statistic_data[0]["product_type"] = $type.val();
                             statistic_data[0]["batch_info"] = $batch.val();
-                            statistic_data[0]["product_count"] = $table.find("tr").length - 1;
+                            statistic_data[0]["product_count"] = get_product_count();
                             statistic_data[0]["total_value"] = get_sum($table.find("a[data-name=single_original_price]"));
                             statistic_data[0]["total_cost_eu"] = get_sum($table.find("a[data-name=total_buy_price]"));
                             statistic_data[0]["total_cost_eu"] = statistic_data[0]["total_cost_eu"].toFixed(2);
                             statistic_data[0]["total_cost_cn"] = statistic_data[0]["total_cost_eu"]*change_rate;
                             statistic_data[0]["total_cost_cn"] = statistic_data[0]["total_cost_cn"].toFixed(2);
-                            statistic_data[0]["postage"] = $statistic_table.find("a[data-name=postage]").text()
-                            statistic_data[0]["packing"] = $statistic_table.find("a[data-name=packing]").text()
+                            statistic_data[0]["postage"] = $statistic_table.find("a[data-name=postage]").text();
+                            statistic_data[0]["packaging_fee"] = $statistic_table.find("a[data-name=packaging_fee]").text();
                             if (data){
                                 statistic_data[0]["postage"] = data["postage"];
-                                statistic_data[0]["packing"] = data["packing"];
+                                statistic_data[0]["packaging_fee"] = data["packaging_fee"];
                             }
                             statistic_data[0]["total_gross_profit_cn"] = get_sum($table.find("a[data-name=total_profit]"));
-                            statistic_data[0]["total_profit_cn"] = statistic_data[0]["total_gross_profit_cn"] - parseFloat(statistic_data[0]["postage"]) - parseFloat(statistic_data[0]["packing"]);
+                            statistic_data[0]["total_profit_cn"] = statistic_data[0]["total_gross_profit_cn"] - parseFloat(statistic_data[0]["postage"]) - parseFloat(statistic_data[0]["packaging_fee"]);
                             statistic_data[0]["total_profit_cn"] = statistic_data[0]["total_profit_cn"].toFixed(2)
                             statistic_data[0]["total_profit_eu"] = parseFloat(statistic_data[0]["total_profit_cn"])/change_rate;
                             statistic_data[0]["total_profit_eu"] = statistic_data[0]["total_profit_eu"].toFixed(2);
@@ -325,6 +375,17 @@
                 }   
             }
         })
+
+        function get_product_count(){
+            let last_cell = $table.find("tr a[data-name=product_number]").last();
+            while (last_cell){
+                if (last_cell.text()!=""){
+                    return last_cell.text();
+                } else {
+                    last_cell = last_cell.prev();
+                }
+            }
+        }
             
         function get_sum(all_cells){
             let sum = 0;
@@ -367,7 +428,7 @@
                     }
                 }
             },{
-                "field": "packing",
+                "field": "packaging_fee",
                 "title": '包装材料',
                 "editable": {
                     "mode": "inline",
@@ -387,10 +448,10 @@
             }],
             onEditableSave: function(field, row, oldValue, $el){
                 console.log(field);
-                if (["postage", "packing"].indexOf(field) != -1){
+                if (["postage", "packaging_fee"].indexOf(field) != -1){
                     let change_rate = parseFloat($change_rate.text());
                     console.log("somthing changed");
-                    row.total_profit_cn = statistic_data[0]["total_gross_profit_cn"] - parseFloat(row.postage) - parseFloat(row.packing);
+                    row.total_profit_cn = statistic_data[0]["total_gross_profit_cn"] - parseFloat(row.postage) - parseFloat(row.packaging_fee);
                     console.log(row.total_profit_cn);
                     row.total_profit_cn = row.total_profit_cn.toFixed(2)
                     row.total_profit_eu = row.total_profit_cn/change_rate;
@@ -419,18 +480,20 @@
         }
         
         $type.on("changed.bs.select", function(event, clickedIndex, newValue, oldValue){
+            console.log("type selected");
             update_batch_select();
         });
 
         function update_batch_select(){
             var type_name = $type.val();
+            $batch.empty();
+            $batch.selectpicker("refresh");
             $.ajax({
                 url:"/get_batch_list",
                 data:type_name,
                 type:"POST",
                 dataType:"json",
                 success:function(data){
-                    $batch.empty();
                     $.each(data, function(index, value){
                         $batch.append("<option value='{0}'>{0}</option>".format(value));
                         $batch.selectpicker("refresh");
@@ -463,9 +526,10 @@
         $remove_button.click(function(){
             let delete_list = []
             $.map($table.bootstrapTable('getSelections'), function (row) {
+                console.log("row.product_number: ", row.product_number);
                 $table.bootstrapTable("remove", {
-                    field: "product_id",
-                    values: [row.product_id]
+                    field: "product_number",
+                    values: [row.product_number]
                 });
                 let info = [row.product_id, row.product_type, row.batch_info];
                 info = JSON.stringify(info);
@@ -505,9 +569,9 @@
         /* 添加数据 */
         var today = getToday();
         console.log(today);
-        function get_default_data(old_id){
+        function get_default_data(old_number){
             var default_data = [{
-                "product_id": 0,
+                "product_number":1,
                 "product_type": $type.val(),
                 "product_name":"",
                 "product_count": "1",
@@ -515,10 +579,13 @@
                 "discount":"",
                 "single_buy_price":"",
                 "total_buy_price":"",
-                "single_sell_price": "未设置",
+                "single_sell_price":NaN,
                 "total_sell_price":"",
                 "single_profit":"",
                 "total_profit":"",
+                "packaging":"",
+                "customer_name":"",
+                "package_number":"0",
                 "date": today,
                 "batch_info": function(){
                     if ($batch.val()){
@@ -528,21 +595,21 @@
                     }
                 }()
             }];
-            var new_id = old_id + 1;
-            default_data[0]["product_id"] = new_id;
+            var new_number = old_number + 1;
+            default_data[0]["product_number"] = new_number;
             return default_data;
         }
 
         var $add_button = $("#add_button");
         $add_button.click(function() {
-            let td = $table.find("tr").last().find("td").eq(1);
-            let old_id;
-            if (td.length == 0){
-                old_id = 0;
+            let number_td = $table.find("tr").last().find("td").eq(1);
+            let old_number;
+            if (number_td.length == 0){
+                old_number = 0;
             } else {
-                old_id = td.text();
+                old_number = number_td.text();
             }
-            $table.bootstrapTable('append', get_default_data(parseInt(old_id)));
+            $table.bootstrapTable('append', get_default_data(parseInt(old_number)));
             $table.bootstrapTable('scrollTo', 'bottom');
         });
 
@@ -555,12 +622,10 @@
 
         function save_table_data(table, aim_url){
             let table_data = table.bootstrapTable("getData");
-            console.log("table_data: "+table_data);
-            let json_data = JSON.stringify(table_data);
-            console.log("json_data: "+json_data);
+            let info = JSON.stringify([$.trim($mode.text()),table_data]);
             $.ajax({
                 url:aim_url,
-                data:json_data,
+                data:info,
                 type:"POST",
                 dataType:"text",
                 success:function(data){
@@ -574,7 +639,6 @@
         }
 
         /* 切换显示模式 */
-        var $mode = $("#mode_button");
         var table_columns_list = ["single_sell_price", "total_sell_price", "single_profit", "total_profit"]
         var statistic_table_columns_list = ["total_profit_eu", "total_profit_cn"];
         $mode.click(function(){
@@ -582,7 +646,7 @@
             var new_mode;
             var mode_operation;
             if (old_mode=="本人模式"){
-                new_mode = "对帐模式";
+                new_mode = "对账模式";
                 mode_operation = "showColumn";
             } else {
                 new_mode = "本人模式";

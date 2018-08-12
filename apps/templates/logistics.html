@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super() }}
+    <script src="../static/bootstrap-table/dist/extensions/flat-json/bootstrap-table-flat-json.js"></script>
+    <script src="../static/bootstrap-table/dist/extensions/multiple-sort/bootstrap-table-multiple-sort.js"></script>
+
+    <script src="../static/bootstrap-select/dist/js/bootstrap-select.js"></script>
+    <link href="../static/bootstrap-select/dist/css/bootstrap-select.css" rel="stylesheet" />
+    <script src="../static/bootstrap-select/dist/js/i18n/defaults-zh_CN.js"></script>
+
+    <script src="../static/bootstrap-table/dist/extensions/export/bootstrap-table-export.js"></script>
+    <script src="../static/table_export.js"></script>
+    <script src="../static/string_format.js"></script>
+
+{% endblock %}
+
+{% block page_content %}
+    <div id="toolbar">
+        <select id="type_select" class="selectpicker show-tick" data-live-search="true" data-width="140px" title="请选择产品类别">
+        </select>
+        <select id="batch_select" class="selectpicker show-tick" data-live-search="true" data-width="120px" title="请选择批次">
+        </select>
+    </div>
+    <table id="table" class="text-nowrap"  
+            data-toggle="table"
+            data-toolbar="#toolbar"
+            data-search="true"
+            >  
+    </table>
+    <script>
+        'use strict';
+        var $table = $('#table');
+        var $type = $("#type_select");
+        var $batch = $("#batch_select");
+        
+        $table.bootstrapTable({
+            detailView: true,
+            columns: [{
+                "field": 'customer_name',
+                "title": '客户姓名'
+            },{
+                "field": 'buy_list',
+                "title": '购买清单'
+            },{
+                "field": "package_number",
+                "title": "快递号",
+                "type": "text",
+            }],
+            onEditableInit: function(){
+                console.log("表格初始化");
+            }
+        })
+
+        $table.on('expand-row.bs.table', function (e, index, row, $detail) {
+            console.log(row.package_number);
+            $detail.html('Loading from internet...');
+            $.ajax({
+                url:"/search_package",
+                data:row.package_number,
+                type:"POST",
+                dataTyep:"json",
+                success:function(data){
+                    let package_info = JSON.parse(data);
+                    console.log(package_info);
+                    let html = [];
+                    html.push("<h5>快递公司:{0}&emsp;&emsp;状态: {1}</h5>".format(package_info["com"], package_info["state"]));
+                    html.push("<h5>时间&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;地点和跟踪进度</h5>");
+                    package_info["data"].forEach(function(item){
+                        html.push("<p>{0}&emsp;&emsp;{1}</p>".format(item["time"], item["context"]));
+                    });
+                    html.join("");
+                    $detail.html(html);
+                }
+            })
+        });
+
+        /* 批次选择 */
+        updata_type_select();
+        function updata_type_select(){
+            console.log("updata_type_select");
+            $.ajax({
+                url:"/get_type_list",
+                data:"",
+                type:"POST",
+                dataType:"json",
+                success:function(data){
+                    $.each(data, function(index, value){
+                        $type.append("<option value='{0}'>{0}</option>".format(value));
+                        $type.selectpicker("refresh");
+                    });
+                }
+            });
+        }
+        
+        $type.on("changed.bs.select", function(event, clickedIndex, newValue, oldValue){
+            update_batch_select();
+        });
+
+        function update_batch_select(){
+            var type_name = $type.val();
+            $batch.empty();
+            $batch.selectpicker("refresh");
+            $.ajax({
+                url:"/get_batch_list",
+                data:type_name,
+                type:"POST",
+                dataType:"json",
+                success:function(data){
+                    $.each(data, function(index, value){
+                        $batch.append("<option value='{0}'>{0}</option>".format(value));
+                        $batch.selectpicker("refresh");
+                    });
+                }
+            })
+        }
+
+        $batch.on("changed.bs.select", function(event, clickedIndex, newValue, oldValue){
+            let info = [$type.val(), $batch.val()];
+            info = JSON.stringify(info);
+            $.ajax({
+                url:"/get_package_info",
+                traditional: true,
+                data: info,
+                type:"POST",
+                dataType:"json",
+                success:function(data){
+                    $table.bootstrapTable("load", data);
+                }
+            })
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,225 @@
+
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super() }}
+
+    <script src="../static/bootstrap-select/dist/js/bootstrap-select.js"></script>
+    <link href="../static/bootstrap-select/dist/css/bootstrap-select.css" rel="stylesheet" />
+    <script src="../static/bootstrap-select/dist/js/i18n/defaults-zh_CN.js"></script>
+
+    <script src="../static/string_format.js"></script>
+
+{% endblock %}
+
+{% block page_content %}
+<div class="container">
+    <div id="toolbar">
+        <button id="remove_button" class="btn btn-danger" disabled>
+            <i class="glyphicon glyphicon-remove"></i> 删除
+        </button>
+        <button id="add_button" class="btn btn-info">
+            <i class="glyphicon glyphicon-plus"></i> 添加
+        </button>
+        <button id="save_button" class="btn btn-success">
+            <i class="glyphicon glyphicon-save"></i> 保存
+        </button>
+    </div>
+    <div>
+    <table id="table" class="text-nowrap"  
+            data-toggle="table"
+            data-toolbar="#toolbar"
+            data-search="true"
+            data-show-columns="true"
+            data-show-export="true"
+            data-unique-id="product_id"
+            >  
+    </table>
+    </div>
+
+    <script>
+        'use strict';
+        var $table = $('#table');
+        $table.bootstrapTable({
+            columns:[{
+                "checkbox": true
+            },{
+                "field": 'customer_number',
+                "title": '客户编号',
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'customer_name',
+                "title": '客户名称',
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'customer_id',
+                "title": '客户身份证号',
+                "sortable": true,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'customer_name_address',
+                "title": '客户地址',
+                "sortable": true,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            }]
+            /*
+            onEditableSave: function (field, row, oldValue, $el){
+                if (["single_original_price", "discount", "product_count"].indexOf(field) != -1){
+                    console.log("call onEdit");
+                    let discount = parseFloat(row.discount);
+                    let single_original_price = parseFloat(row.single_original_price);
+                    let product_count = parseInt(row.product_count);
+                    let row_index = parseInt(row.product_id);
+                    console.log("row_index: " + row_index);
+                    let $total_buy_price = $table.find("tr").eq(row_index).find("a[data-name=total_buy_price]");                    
+                    if (row.discount > 1){
+                        alert("你确定折扣大于1么，傻妞？");
+                    } else if (row.discount > 0){
+                        $total_buy_price.text(single_original_price*discount*product_count);
+                    } else if (row.discount < 0){
+                        $total_buy_price.text((single_original_price - discount)*product_count);
+                    }
+                }
+            }
+            */
+        });
+        /* 种类选择 */
+        var $type = $("#type_select");
+        var type_name = $type.val();
+        $.ajax({
+            url:"/get_type_list",
+            data:"",
+            type:"POST",
+            dataType:"json",
+            success:function(data){
+                console.log(data);
+                $.each(data, function(index, value){
+                    console.log(value);
+                    $type.append("<option value='{0}'>{0}</option>".format(value));
+                    $type.selectpicker("refresh");
+                });
+            }
+        });
+        
+        $type.on("changed.bs.select", function(event, clickedIndex, newValue, oldValue){
+            var type_name = $type.val();
+            $.ajax({
+                url:"/get_product_list",
+                data:type_name,
+                type:"POST",
+                dataType:"json",
+                success:function(data){
+                    console.log(data)
+                    $table.bootstrapTable("load", data);
+                }
+            })
+        });
+
+
+        var $remove_button = $("#remove_button");
+        $table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', function () {
+            $remove_button.prop('disabled', !$table.bootstrapTable('getSelections').length);
+        });
+        
+        $remove_button.click(function(){
+            let names = getProductSelections();
+            let data = JSON.stringify(names);
+            console.log("data : {0}".format(data))
+            $.ajax({
+                url:"/data_delete",
+                data:data,
+                type:"POST",
+                dataType:"text",
+                success:function(data){
+                    alert(data);
+                }
+            });
+            $table.bootstrapTable("remove", {
+                field: "product_name",
+                values: names
+            });
+            $remove_button.prop('disabled', true);
+        });
+
+        /* 返回checkbox选中的列的id */
+        function getProductSelections() {
+            return $.map($table.bootstrapTable('getSelections'), function (row) {
+                console.log(row.product_name);
+                return row.product_name
+            });
+        }
+
+        /* 添加数据 */
+        function get_default_data(old_id){
+            var default_data = [{
+                "customer_name": "",
+                "customer_id": "",
+                "customer_name_address": "1",
+
+            }];
+            var new_id = old_id + 1;
+            console.log(new_id);
+            default_data[0]["product_id"] = new_id;
+            default_data[0]["product_type"] = $type.val();
+            return default_data;
+        }
+        var $add_button = $("#add_button");
+        $add_button.click(function() {
+            let td = $table.find("tr").last().find("td").eq(1);
+            let old_id;
+            if (td.length == 0){
+                old_id = 0;
+            } else {
+                old_id = td.text();
+            }
+            console.log("old_id: "+old_id);
+            $table.bootstrapTable('append', get_default_data(parseInt(old_id)));
+            $table.bootstrapTable('scrollTo', 'bottom');
+        });
+        //点击保存，将产品信息保存到数据库 
+        var $save_button = $("#save_button");
+        
+        $save_button.click(function() {
+            let table_data = $table.bootstrapTable("getData");
+            let data = JSON.stringify(table_data)
+            console.log(data);
+            save_table_data(data);
+        });
+        function save_table_data(data){
+            $.ajax({
+                url:"/products_save",
+                data:data,
+                type:"POST",
+                dataType:"text",
+                success:function(data){
+                    alert("返回数据：" + data);
+                }
+            }) 
+        }
+    </script>
+
+{% endblock %}
