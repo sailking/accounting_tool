@@ -128,7 +128,7 @@ def purchase_data_to_df(purchase_data):
         print(index, row["product_number"])
 
         
-    for key in ["0", "batch_info", "product_id", "product_type"]:
+    for key in ["0", "batch_info", "product_id", "product_type", "customer_name", "package_number", "date"]:
         if key in head.keys():
             head.pop(key)
     # 调整列顺序

@@ -106,7 +106,7 @@ class Purchase(DynamicDocument):
                     return "售价未标明，请核对后重新保存"
             
             for purchase in purchase_data:    
-                item = Purchase.objects(product_number=purchase["product_number"], discount=purchase["discount"], batch_info=purchase["batch_info"], product_type=purchase["product_type"]).first()
+                item = Purchase.objects(product_number=purchase["product_number"], single_buy_price=purchase["single_buy_price"], batch_info=purchase["batch_info"], product_type=purchase["product_type"]).first()
                 if item is None:
                     print("create new")
                     item = Purchase()

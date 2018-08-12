@@ -494,6 +494,8 @@
                 type:"POST",
                 dataType:"json",
                 success:function(data){
+                    $batch.empty();
+                    $batch.selectpicker("refresh");
                     $.each(data, function(index, value){
                         $batch.append("<option value='{0}'>{0}</option>".format(value));
                         $batch.selectpicker("refresh");
@@ -629,7 +631,6 @@
                 type:"POST",
                 dataType:"text",
                 success:function(data){
-                    console.log(data);
                     if (data !== "None"){
                         alert("返回数据：" + data);
                         update_batch_select();
