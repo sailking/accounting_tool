@@ -78,6 +78,8 @@ class Purchase(DynamicDocument):
     discount = FloatField()
     single_buy_price = FloatField()
     total_buy_price = FloatField()
+    single_buy_price_cn = FloatField()
+    total_buy_price_cn = FloatField()
     single_sell_price = FloatField()
     total_sell_price = FloatField()
     single_profit = FloatField()
@@ -99,14 +101,17 @@ class Purchase(DynamicDocument):
             pprint(purchase_data)
             if not purchase_data:
                 return "None"
+            
             for purchase in purchase_data:
+                if purchase["customer_name"] == "未设置":
+                    return "请标明客户后重新保存"
                 if purchase["batch_info"] == "未设置":
                     return "批次未标明，请核对后重新保存"
                 if purchase["single_sell_price"] =="" and mode == "对账模式":
                     return "售价未标明，请核对后重新保存"
             
             for purchase in purchase_data:    
-                item = Purchase.objects(product_number=purchase["product_number"], single_buy_price=purchase["single_buy_price"], batch_info=purchase["batch_info"], product_type=purchase["product_type"]).first()
+                item = Purchase.objects(product_type=purchase["product_type"], batch_info=purchase["batch_info"], product_name=purchase["product_name"], product_number=purchase["product_number"], single_buy_price=purchase["single_buy_price"]).first()
                 if item is None:
                     print("create new")
                     item = Purchase()
@@ -118,7 +123,9 @@ class Purchase(DynamicDocument):
                 item.single_original_price = str_to_float(purchase["single_original_price"])
                 item.discount = float(purchase["discount"])
                 item.single_buy_price = str_to_float(purchase["single_buy_price"])
+                item.single_buy_price_cn = str_to_float(purchase["single_buy_price_cn"])
                 item.total_buy_price = str_to_float(purchase["total_buy_price"])
+                item.total_buy_price_cn = str_to_float(purchase["total_buy_price_cn"])
                 item.single_sell_price = str_to_float(purchase["single_sell_price"])
                 item.total_sell_price = str_to_float(purchase["total_sell_price"])
                 item.single_profit = str_to_float(purchase["single_profit"])
@@ -133,8 +140,7 @@ class Purchase(DynamicDocument):
                 
             return "货品保存成功"
         except Exception as e:
-            print("错误信息：{}".format(e))
-            return "保存货品过程中出现错误"
+            return "错误信息：{}".format(e)
     
     @classmethod
     def get_batch_list(cls, type_name):
@@ -151,12 +157,12 @@ class Purchase(DynamicDocument):
     
     @classmethod
     def purchase_delete(cls, info):
-        product_id, product_type, batch_info = info
+        product_number, product_type, batch_info, single_buy_price = info
         try:
-            item = Purchase.objects(product_id=product_id, product_type=product_type, batch_info=batch_info).first()
+            item = Purchase.objects(product_number=product_number, product_type=product_type, batch_info=batch_info, single_buy_price=single_buy_price).first()
             if item:
                 item.delete()
-                return "{}->{}->{}".format(product_type, batch_info, product_id)
+                return "{}->{}->{}".format(product_type, batch_info,product_number)
             else:
                 print("没有此项")
                 return ""
@@ -303,6 +309,3 @@ class Statistics(DynamicDocument):
             json_data = json.dumps(statistic_data)
         print(json_data)
         return json_data
-    
-    
-    
