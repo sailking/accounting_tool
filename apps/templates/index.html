@@ -45,7 +45,7 @@
             data-unique-id="product_id"
             >  
     </table>
-    <h4>统计信息:&nbsp&nbsp 当前汇率: &nbsp&nbsp<a href="#" id="change_rate" data-type="text">8.0</a></h4>
+    <h4>统计信息:&nbsp&nbsp 当前汇率: &nbsp&nbsp<a href="#" id="change_rate" data-type="text">点击更改</a></h4>
     <table id="statistic_table" class="text-nowrap"
             data-toggle="table"
             data-unique-id="batch_info"
@@ -102,7 +102,11 @@
         });
 
         $('#change_rate').on('save', function(e, params){
-            $table.bootstrapTable("append",[]);
+            let current_data = $table.bootstrapTable("getData")
+            current_data.forEach(function(element){
+                updata_table_data(element, params.newValue);
+            })
+            $table.bootstrapTable("append", []);
             $statistic_table.bootstrapTable("append",[]);
         });
 
@@ -122,6 +126,18 @@
                 "field": "product_type",
                 "title": "产品类别",
                 "type": "text",
+                "editable": {
+                    "type": "text",
+                    "placement": "bottom",
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": "customer_name",
+                "title": "客户姓名",
+                "type": "text",
+                "sortable":true,
                 "editable": {
                     "type": "text",
                     "placement": "bottom",
@@ -205,6 +221,28 @@
                     }
                 }
             },{
+                "field": 'single_buy_price_cn',
+                "title": '实价(单)/人民币',
+                "visible":false,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
+                "field": 'total_buy_price_cn',
+                "title": '实价(总)/人民币',
+                "visible":false,
+                "editable": {
+                    "mode": "inline",
+                    "type": 'text',
+                    "validate": function (v) {
+                        if (!v) return '不能为空';  
+                    }
+                }
+            },{
                 "field": 'single_sell_price',
                 "title": '售价(单)/人民币',
                 "visible": false,
@@ -252,18 +290,6 @@
                 "field": "packaging",
                 "title": "纸箱/气柱",
                 "type": "text",
-                "editable": {
-                    "type": "text",
-                    "placement": "bottom",
-                    "validate": function (v) {
-                        if (!v) return '不能为空';  
-                    }
-                }
-            },{
-                "field": "customer_name",
-                "title": "客户姓名",
-                "type": "text",
-                "sortable":true,
                 "editable": {
                     "type": "text",
                     "placement": "bottom",
@@ -324,17 +350,7 @@
                         }
                     })
                 }
-                row.single_buy_price =  row.single_original_price * row.discount;
-                row.single_buy_price = row.single_buy_price.toFixed(2);
-                row.total_buy_price = row.single_buy_price * row.product_count;
-                row.total_buy_price = row.total_buy_price.toFixed(2);
-                row.total_sell_price = row.single_sell_price * row.product_count;
-                row.single_profit = row.single_sell_price - row.single_buy_price * parseFloat(change_rate);
-                row.single_profit = row.single_profit.toFixed(2);
-                row.total_profit = row.single_profit * row.product_count;
-                row.total_profit = row.total_profit.toFixed(2);
-                console.log(row.total_buy_price);
-
+                updata_table_data(row, change_rate);
                 $table.bootstrapTable("append", []);
             },
             onEditableInit: function(){
@@ -349,7 +365,6 @@
                     dataType:"json",
                     success:function(data){
                             let change_rate = parseFloat($change_rate.text());
-                            console.log("change_rate: "+change_rate);
                             statistic_data[0]["product_type"] = $type.val();
                             statistic_data[0]["batch_info"] = $batch.val();
                             statistic_data[0]["product_count"] = get_product_count();
@@ -376,6 +391,23 @@
             }
         })
 
+        function updata_table_data(row, change_rate){
+            row.single_buy_price =  row.single_original_price * row.discount;
+            row.single_buy_price = row.single_buy_price.toFixed(2);
+            row.total_buy_price = row.single_buy_price * row.product_count;
+            row.total_buy_price = row.total_buy_price.toFixed(2);
+            row.single_buy_price_cn = row.single_buy_price * change_rate;
+            row.single_buy_price_cn = row.single_buy_price_cn.toFixed(2)
+            row.total_buy_price_cn = row.single_buy_price_cn * row.product_count;
+            row.total_buy_price_cn = row.total_buy_price_cn.toFixed(2);
+            row.total_sell_price = row.single_sell_price * row.product_count;
+            row.single_profit = row.single_sell_price - row.single_buy_price_cn
+            row.single_profit = row.single_profit.toFixed(2);
+            row.total_profit = row.single_profit * row.product_count;
+            row.total_profit = row.total_profit.toFixed(2);
+        }
+
+
         function get_product_count(){
             let last_cell = $table.find("tr a[data-name=product_number]").last();
             while (last_cell){
@@ -397,7 +429,6 @@
             if (sum == 0){
                 return undefined;
             }
-            console.log("sum: "+sum);
             return sum;
         }
 
@@ -505,6 +536,10 @@
         }
 
         $batch.on("changed.bs.select", function(event, clickedIndex, newValue, oldValue){
+            load_data_from_db();
+        });
+
+        function load_data_from_db(){
             let info = [$type.val(), $batch.val()];
             info = JSON.stringify(info);
             $.ajax({
@@ -517,7 +552,7 @@
                     $table.bootstrapTable("load", data);
                 }
             })
-        });
+        }
 
         var $remove_button = $("#remove_button");
         $table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', function () {
@@ -533,7 +568,7 @@
                     field: "product_number",
                     values: [row.product_number]
                 });
-                let info = [row.product_id, row.product_type, row.batch_info];
+                let info = [row.product_number, row.product_type, row.batch_info, row.single_buy_price];
                 info = JSON.stringify(info);
                 $.ajax({
                     url:"/purchase_delete",
@@ -543,6 +578,7 @@
                     async:false,
                     success:function(data){
                         delete_list.push(data);
+                        load_data_from_db();
                     }
                 }); 
             });
@@ -581,12 +617,14 @@
                 "discount":"",
                 "single_buy_price":"",
                 "total_buy_price":"",
+                "single_buy_price_cn":"",
+                "total_buy_price_cn":"",
                 "single_sell_price":NaN,
                 "total_sell_price":"",
                 "single_profit":"",
                 "total_profit":"",
-                "packaging":"",
-                "customer_name":"",
+                "packaging":"未设置",
+                "customer_name":"未设置",
                 "package_number":"0",
                 "date": today,
                 "batch_info": function(){
@@ -640,7 +678,7 @@
         }
 
         /* 切换显示模式 */
-        var table_columns_list = ["single_sell_price", "total_sell_price", "single_profit", "total_profit"]
+        var table_columns_list = ["single_sell_price", "total_sell_price", "single_buy_price_cn", "single_profit", "total_profit", "total_buy_price_cn"]
         var statistic_table_columns_list = ["total_profit_eu", "total_profit_cn"];
         $mode.click(function(){
             var old_mode = $.trim($(this).text());
