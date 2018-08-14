@@ -53,26 +53,29 @@
         })
 
         $table.on('expand-row.bs.table', function (e, index, row, $detail) {
-            console.log(row.package_number);
-            $detail.html('Loading from internet...');
-            $.ajax({
-                url:"/search_package",
-                data:row.package_number,
-                type:"POST",
-                dataTyep:"json",
-                success:function(data){
-                    let package_info = JSON.parse(data);
-                    console.log(package_info);
-                    let html = [];
-                    html.push("<h5>快递公司:{0}&emsp;&emsp;状态: {1}</h5>".format(package_info["com"], package_info["state"]));
-                    html.push("<h5>时间&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;地点和跟踪进度</h5>");
-                    package_info["data"].forEach(function(item){
-                        html.push("<p>{0}&emsp;&emsp;{1}</p>".format(item["time"], item["context"]));
-                    });
-                    html.join("");
-                    $detail.html(html);
-                }
-            })
+            console.log(typeof row.package_number);
+            if (typeof row.package_number === "undefined"){
+                $detail.html('没有快递号');
+            } else {
+                    $.ajax({
+                    url:"/search_package",
+                    data:row.package_number,
+                    type:"POST",
+                    dataTyep:"json",
+                    success:function(data){
+                        let package_info = JSON.parse(data);
+                        console.log(package_info);
+                        let html = [];
+                        html.push("<h5>快递公司:{0}&emsp;&emsp;状态: {1}</h5>".format(package_info["com"], package_info["state"]));
+                        html.push("<h5>时间&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;地点和跟踪进度</h5>");
+                        package_info["data"].forEach(function(item){
+                            html.push("<p>{0}&emsp;&emsp;{1}</p>".format(item["time"], item["context"]));
+                        });
+                        html.join("");
+                        $detail.html(html);
+                    }
+                })
+            }  
         });
 
         /* 批次选择 */
